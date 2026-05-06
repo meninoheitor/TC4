@@ -15,7 +15,7 @@ export default function Header() {
 const styles = StyleSheet.create({
     container: {
         height: 90,
-        backgroundColor: "#0A1F44", // cor estilo banco
+        backgroundColor: "#f4f5f8", // cor estilo banco
         justifyContent: "center",
         alignItems: "center",
         paddingTop: 30, // status bar
