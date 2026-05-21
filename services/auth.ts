@@ -1,19 +1,16 @@
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updateProfile } from "firebase/auth";
-import { auth } from "./firebase";
+/**
+ * @deprecated Prefira container.useCases.auth ou useAuth()
+ */
+import { container } from "@/core/di/container";
 
 export async function register(name: string, email: string, password: string) {
-    const credential = await createUserWithEmailAndPassword(auth, email, password);
-
-    const user = credential.user;
-
-    await updateProfile(user, { displayName: name });
-    return credential;
+  return container.useCases.auth.register.execute(name, email, password);
 }
 
 export async function login(email: string, password: string) {
-    return signInWithEmailAndPassword(auth, email, password);
+  return container.useCases.auth.login.execute(email, password);
 }
 
 export async function logout() {
-    return signOut(auth);
+  return container.useCases.auth.logout.execute();
 }

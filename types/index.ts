@@ -1,23 +1,30 @@
-export type TransactionType = "deposito" | "transferencia" | "";
+import type {
+  Transaction,
+  TransactionType,
+} from "@/core/domain/entities/Transaction";
 
-export interface Transaction {
-  id: string;
-  userId?: string;
-  type: TransactionType;
-  value: number;
-  createdAt: Date;
-  description: string;
-  attachment?: string;
-}
+export type {
+  CreateTransactionInput,
+  ReceiptMetadata,
+  Transaction,
+  TransactionReceipt,
+  TransactionType,
+  UpdateTransactionInput,
+} from "@/core/domain/entities/Transaction";
 
-export interface TransactionInput {
+export type { AuthUser } from "@/core/domain/entities/User";
+
+export type TransactionInput = {
   type: TransactionType;
   amount: number;
   description?: string;
-}
+};
 
-export interface Database {
-  transaction: Transaction[];
+export interface TransactionsListProps {
+  transactions: Transaction[];
+  title: string;
+  onEditClick?: (transaction: Transaction) => void;
+  onDeleteClick?: (transaction: Transaction) => void;
 }
 
 export interface NewTransactionProps {
@@ -68,13 +75,6 @@ export interface AccessibilityContextType {
   toggleChangeFontSize: () => void;
 }
 
-export interface TransactionsListProps {
-  transactions: Transaction[];
-  title: string;
-  onEditClick?: (transaction: Transaction) => void;
-  onDeleteClick?: (transation: Transaction) => void;
-}
-
 export interface TransactionsListHomeProps {
   transaction: Transaction[];
   title: string;
@@ -89,22 +89,4 @@ export interface ModalProps {
 export interface MenuItem {
   label: string;
   path: string;
-}
-
-export interface TransactionReceipt {
-  fileName: string;
-  storagePath: string;
-  downloadURL: string;
-  contentType: string;
-}
-
-export interface Transaction {
-  id: string;
-  userId?: string;
-  type: TransactionType;
-  value: number;
-  createdAt: Date;
-  description: string;
-  attachment?: string;
-  receipt?: TransactionReceipt;
 }

@@ -1,7 +1,7 @@
 import TransactionsList from "@/components/TransactionList";
 //import { mockTransactions } from "@/mocks/transactions";
 import { useTransactions } from "@/hooks/useTransactions";
-import { removeTransaction } from "@/services/transactions";
+import { container } from "@/core/di/container";
 import { Transaction } from "@/types";
 import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
@@ -42,7 +42,10 @@ export default function TransacoesScreen() {
         text: "Excluir",
         style: "destructive",
         onPress: async () => {
-          await removeTransaction(transaction.id);
+          await container.useCases.transactions.delete.execute(
+            transaction.id,
+            transaction.receipt?.storagePath,
+          );
         },
       },
     ]);

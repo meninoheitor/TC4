@@ -1,11 +1,12 @@
 import { useAuth } from "@/hooks/useAuth";
+import { AppProviders } from "@/presentation/providers/AppProviders";
 import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
 
 SplashScreen.preventAutoHideAsync();
 
-export default function RootLayout() {
+function RootNavigator() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const segments = useSegments();
@@ -30,4 +31,12 @@ export default function RootLayout() {
   }
 
   return <Stack screenOptions={{ headerShown: false }} />;
+}
+
+export default function RootLayout() {
+  return (
+    <AppProviders>
+      <RootNavigator />
+    </AppProviders>
+  );
 }

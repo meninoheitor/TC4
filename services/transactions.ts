@@ -1,205 +1,60 @@
-import { auth, db } from "@/services/firebase";
-import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  getDoc,
-  onSnapshot,
-  query,
-  serverTimestamp,
-  Timestamp,
-  updateDoc,
-  where,
-} from "firebase/firestore";
+/**
+ * @deprecated Prefira container.useCases ou useTransactions()
+ */
+import type { Transaction } from "@/core/domain/entities/Transaction";
+import { container } from "@/core/di/container";
+import { calculateBalance } from "@/core/domain/services/FinanceCalculator";
 
-export type FirestoreTransaction = {
-  id: string;
-  userId: string;
-  type: "deposito" | "transferencia";
-  value: number;
-  description: string;
-  createdAt: Date;
-  receipt?: {
-    fileName: string;
-    storagePath: string;
-    downloadURL: string;
-    contentType: string;
-  };
-};
+export type FirestoreTransaction = Transaction;
 
-type CreateTransactionInput = {
-  type: "deposito" | "transferencia";
-  value: number;
-  description: string;
-};
-
-type UpdateTransactionInput = {
-  type: "deposito" | "transferencia";
-  value: number;
-  description: string;
-};
-
-type ReceiptMetadata = {
-  storagePath: string;
-  downloadURL: string;
-  fileName: string;
-  contentType: string;
-};
-
-export async function addTransaction(input: CreateTransactionInput) {
-  const user = auth.currentUser;
-
-  if (!user) {
-    throw new Error("Usuário não autenticado.");
-  }
-
-  /* await addDoc(collection(db, "transactions"), {
-        userId: user.uid,
-        type: input.type,
-        value: input.value,
-        description: input.description,
-        createdAt: Timestamp.now(),
-    }); */
-  const docRef = await addDoc(collection(db, "transactions"), {
-    userId: user.uid,
-    type: input.type,
-    value: input.value,
-    description: input.description,
-    createdAt: Timestamp.now(),
-  });
-
-  return docRef.id;
+export async function addTransaction(
+  input: Parameters<
+    typeof container.repositories.transactions.create
+  >[0],
+) {
+  return container.repositories.transactions.create(input);
 }
 
 export function subscribeToUserTransactions(
-  callback: (transactions: FirestoreTransaction[]) => void,
+  callback: (transactions: Transaction[]) => void,
 ) {
-  const user = auth.currentUser;
+  const subscription = container.repositories.transactions
+    .observeUserTransactions()
+    .subscribe({
+      next: callback,
+      error: () => callback([]),
+    });
 
-  console.log("uid logado:", user?.uid);
-
-  if (!user) {
-    callback([]);
-    return () => {};
-  }
-
-  const q = query(
-    collection(db, "transactions"),
-    where("userId", "==", user.uid),
-    //orderBy("createdAt", "desc")
-  );
-
-  return onSnapshot(
-    q,
-    (snapshot) => {
-      console.log("docs encontrados:", snapshot.size);
-
-      const transactions: FirestoreTransaction[] = snapshot.docs.map((item) => {
-        const data = item.data();
-
-        console.log("doc:", item.id, data);
-
-        return {
-          id: item.id,
-          userId: data.userId,
-          type: data.type,
-          value: Number(data.value),
-          description: data.description ?? "",
-          createdAt: data.createdAt?.toDate?.() ?? new Date(),
-          receipt: data.receipt ?? undefined,
-        };
-      });
-
-      callback(transactions);
-    },
-    (error) => {
-      console.log("erro ao buscar transações:", error);
-      callback([]);
-    },
-  );
+  return () => subscription.unsubscribe();
 }
 
 export async function removeTransaction(transactionId: string) {
-  await deleteDoc(doc(db, "transactions", transactionId));
+  return container.useCases.transactions.delete.execute(transactionId);
 }
 
 export async function updateTransaction(
   transactionId: string,
-  input: UpdateTransactionInput,
+  input: Parameters<
+    typeof container.repositories.transactions.update
+  >[1],
 ) {
-  const user = auth.currentUser;
-
-  if (!user) {
-    throw new Error("Usuário não autenticado.");
-  }
-
-  const ref = doc(db, "transactions", transactionId);
-
-  await updateDoc(ref, {
-    type: input.type,
-    value: input.value,
-    description: input.description,
-  });
+  return container.repositories.transactions.update(transactionId, input);
 }
 
-export function calculateBalance(transactions: FirestoreTransaction[]) {
-  return transactions.reduce((total, transaction) => {
-    if (transaction.type === "deposito") {
-      return total + transaction.value;
-    }
-
-    return total - transaction.value;
-  }, 0);
-}
+export { calculateBalance };
 
 export async function attachReceiptToTransaction(
   transactionId: string,
-  receipt: ReceiptMetadata,
+  receipt: Parameters<
+    typeof container.repositories.transactions.attachReceipt
+  >[1],
 ) {
-  const user = auth.currentUser;
-
-  if (!user) {
-    throw new Error("Usuário não autenticado.");
-  }
-
-  const transactionRef = doc(db, "transactions", transactionId);
-
-  await updateDoc(transactionRef, {
-    receipt: {
-      ...receipt,
-      uploadedAt: serverTimestamp(),
-    },
-  });
+  return container.repositories.transactions.attachReceipt(
+    transactionId,
+    receipt,
+  );
 }
 
 export async function getTransactionById(transactionId: string) {
-  const user = auth.currentUser;
-
-  if (!user) {
-    throw new Error("Usuário não autenticado.");
-  }
-
-  const ref = doc(db, "transactions", transactionId);
-  const snapshot = await getDoc(ref);
-
-  if (!snapshot.exists()) {
-    throw new Error("Transação não encontrada.");
-  }
-
-  const data = snapshot.data();
-
-  if (data.userId !== user.uid) {
-    throw new Error("Acesso negado.");
-  }
-
-  return {
-    id: snapshot.id,
-    userId: data.userId,
-    type: data.type,
-    value: Number(data.value),
-    description: data.description ?? "",
-    createdAt: data.createdAt?.toDate?.() ?? new Date(),
-    receipt: data.receipt ?? undefined,
-  } as FirestoreTransaction;
+  return container.useCases.transactions.getById.execute(transactionId);
 }

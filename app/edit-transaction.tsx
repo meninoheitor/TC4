@@ -1,16 +1,17 @@
+import { container } from "@/core/di/container";
+import type { Transaction } from "@/core/domain/entities/Transaction";
 import { useBalance } from "@/hooks/useBalance";
-import { getTransactionById, updateTransaction } from "@/services/transactions";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-    Alert,
-    Linking,
-    Platform,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  Linking,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -20,6 +21,8 @@ export default function EditTransactionScreen() {
   const { balance } = useBalance();
 
   const [loading, setLoading] = useState(true);
+  const [originalTransaction, setOriginalTransaction] =
+    useState<Transaction | null>(null);
   const [type, setType] = useState<"deposito" | "transferencia">("deposito");
   const [value, setValue] = useState("");
   const [description, setDescription] = useState("");
@@ -27,9 +30,16 @@ export default function EditTransactionScreen() {
   const [receiptName, setReceiptName] = useState("");
 
   function handleValueChange(text: string) {
-    // Remove "R$ " e espaços, mantendo apenas dígitos, vírgula e ponto
     const cleaned = text.replace(/^R\$\s*/, "").replace(/[^\d.,]/g, "");
     setValue(cleaned);
+  }
+
+  function getAvailableBalanceForTransfer(): number {
+    if (!originalTransaction || originalTransaction.type !== "transferencia") {
+      return balance;
+    }
+
+    return balance + originalTransaction.value;
   }
 
   useEffect(() => {
@@ -37,15 +47,19 @@ export default function EditTransactionScreen() {
       if (!params.id) return;
 
       try {
-        const transaction = await getTransactionById(String(params.id));
+        const transaction = await container.useCases.transactions.getById.execute(
+          String(params.id),
+        );
 
+        setOriginalTransaction(transaction);
         setType(transaction.type);
         setValue(String(transaction.value));
         setDescription(transaction.description);
         setReceiptUrl(transaction.receipt?.downloadURL ?? "");
         setReceiptName(transaction.receipt?.fileName ?? "");
-      } catch (error: any) {
-        Alert.alert("Erro", error.message ?? "Não foi possível carregar.");
+      } catch (error: unknown) {
+        const err = error as { message?: string };
+        Alert.alert("Erro", err.message ?? "Não foi possível carregar.");
       } finally {
         setLoading(false);
       }
@@ -65,12 +79,16 @@ export default function EditTransactionScreen() {
       Alert.alert("Erro", "Insira um valor válido");
       return;
     }
-    if (type === "transferencia" && numericValue > balance) {
+
+    const availableBalance = getAvailableBalanceForTransfer();
+
+    if (type === "transferencia" && numericValue > availableBalance) {
       Alert.alert("Erro", "Saldo insuficiente para transferência");
       return;
     }
+
     try {
-      await updateTransaction(String(params.id), {
+      await container.useCases.transactions.update.execute(String(params.id), {
         type,
         value: numericValue,
         description,
@@ -78,8 +96,9 @@ export default function EditTransactionScreen() {
 
       Alert.alert("Sucesso", "Transação atualizada!");
       router.back();
-    } catch (error: any) {
-      Alert.alert("Erro", error.message ?? "Não foi possível atualizar.");
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      Alert.alert("Erro", err.message ?? "Não foi possível atualizar.");
     }
   }
 
@@ -93,7 +112,7 @@ export default function EditTransactionScreen() {
       }
 
       await Linking.openURL(receiptUrl);
-    } catch (error) {
+    } catch {
       Alert.alert("Erro", "Não foi possível abrir o recibo.");
     }
   }
@@ -234,13 +253,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 12,
   },
-
   saveButtonText: {
     color: "#fff",
     fontSize: 16,
     fontWeight: "700",
   },
-
   receiptCard: {
     backgroundColor: "#F7F9FC",
     borderRadius: 12,

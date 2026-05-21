@@ -1,19 +1,15 @@
+import { container } from "@/core/di/container";
 import { useBalance } from "@/hooks/useBalance";
-import { uploadReceipt } from "@/services/receipts";
-import {
-    addTransaction,
-    attachReceiptToTransaction,
-} from "@/services/transactions";
 import * as DocumentPicker from "expo-document-picker";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-    Alert,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -29,7 +25,6 @@ export default function NewTransactionScreen() {
   const { balance } = useBalance();
 
   function handleValueChange(text: string) {
-    // Remove "R$ " e espaços, mantendo apenas dígitos, vírgula e ponto
     const cleaned = text.replace(/^R\$\s*/, "").replace(/[^\d.,]/g, "");
     setValue(cleaned);
   }
@@ -49,31 +44,24 @@ export default function NewTransactionScreen() {
       Alert.alert("Erro", "Saldo insuficiente para transferência");
       return;
     }
+
     try {
-      // cria transação
-      const transactionId = await addTransaction({
-        type,
-        value: numericValue,
-        description,
-      });
+      await container.useCases.transactions.createWithReceipt.execute(
+        { type, value: numericValue, description },
+        selectedFile
+          ? {
+              file: selectedFile,
+              fileName: selectedFileName,
+              contentType: selectedFileType,
+            }
+          : undefined,
+      );
 
-      // se tiver recibo
-      if (selectedFile) {
-        const receiptData = await uploadReceipt({
-          transactionId,
-          file: selectedFile,
-          fileName: selectedFileName,
-          contentType: selectedFileType,
-        });
-
-        // salva no Firestore dentro da transação
-        await attachReceiptToTransaction(transactionId, receiptData);
-      }
       Alert.alert("Sucesso", "Transação criada!");
-
       router.back();
-    } catch (error: any) {
-      Alert.alert("Erro", error.message);
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      Alert.alert("Erro", err.message ?? "Não foi possível salvar.");
     }
   }
 
@@ -98,7 +86,7 @@ export default function NewTransactionScreen() {
       const blob = await response.blob();
 
       setSelectedFile(blob);
-    } catch (error: any) {
+    } catch {
       Alert.alert("Erro", "Não foi possível selecionar o arquivo.");
     }
   }
@@ -107,7 +95,6 @@ export default function NewTransactionScreen() {
     <SafeAreaView style={styles.container}>
       <Text style={styles.title}>Nova Transação</Text>
 
-      {/* Tipo */}
       <View style={styles.row}>
         <TouchableOpacity
           style={[styles.typeButton, type === "deposito" && styles.active]}
@@ -138,7 +125,6 @@ export default function NewTransactionScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Valor */}
       <TextInput
         placeholder="R$ 0,00"
         value={value ? `R$ ${value}` : ""}
@@ -147,7 +133,6 @@ export default function NewTransactionScreen() {
         style={styles.input}
       />
 
-      {/* Descrição */}
       <TextInput
         placeholder="Descrição"
         value={description}
@@ -182,19 +167,16 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: "#fff",
   },
-
   title: {
     fontSize: 22,
     fontWeight: "700",
     marginBottom: 20,
   },
-
   row: {
     flexDirection: "row",
     marginBottom: 16,
     gap: 10,
   },
-
   typeButton: {
     flex: 1,
     padding: 12,
@@ -203,46 +185,38 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#EEF3FF",
   },
-
   active: {
     backgroundColor: "#1F3C88",
   },
-
   typeTextActive: {
     color: "#fff",
     fontWeight: "700",
   },
-
   typeText: {
     color: "#1F3C88",
     fontWeight: "700",
   },
-
   input: {
     borderWidth: 1,
     padding: 12,
     marginBottom: 12,
     borderRadius: 8,
   },
-
   saveButton: {
     backgroundColor: "#1F3C88",
     padding: 12,
     borderRadius: 10,
     alignItems: "center",
   },
-
   saveButtonText: {
     color: "#fff",
     fontSize: 16,
     fontWeight: "700",
   },
-
   cancelButton: {
     marginTop: 12,
     alignItems: "center",
   },
-
   cancelButtonText: {
     color: "#666",
     fontSize: 14,
@@ -254,12 +228,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 12,
   },
-
   fileButtonText: {
     color: "#1F3C88",
     fontWeight: "700",
   },
-
   fileName: {
     fontSize: 13,
     color: "#555",

@@ -9,13 +9,7 @@ import {
 } from "react-native";
 import Svg, { Circle, G } from "react-native-svg";
 
-/*import { Transaction } from "@/types"; */
 import { useTransactions } from "@/hooks/useTransactions";
-import { calculateBalance } from "@/services/transactions";
-import {
-  calculateTotalDeposits,
-  calculateTotalTransfers,
-} from "@/utils/financeUtils";
 import { formatCurrency } from "@/utils/formatCurrency";
 import { formatDateMini } from "@/utils/formatters";
 
@@ -24,7 +18,14 @@ import { formatDateMini } from "@/utils/formatters";
 }
  */
 export const FinancialDashboard: React.FC = () => {
-  const { transactions, loading } = useTransactions();
+  const {
+    transactions,
+    loading,
+    balance: currentBalance,
+    totalDeposits,
+    totalTransfers,
+    fromCache,
+  } = useTransactions();
   const [showDonut, setShowDonut] = useState(false);
   const animValue = useRef(new Animated.Value(0)).current;
 
@@ -40,10 +41,6 @@ export const FinancialDashboard: React.FC = () => {
       }),
     ]).start();
   }, [transactions, animValue]);
-
-  const currentBalance = calculateBalance(transactions);
-  const totalDeposits = calculateTotalDeposits(transactions);
-  const totalTransfers = calculateTotalTransfers(transactions);
 
   const chartAnalysis = useMemo(() => {
     const dailyData: Record<
@@ -128,6 +125,11 @@ export const FinancialDashboard: React.FC = () => {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Text style={styles.summaryTitle}>Análise Financeira</Text>
+      {fromCache && (
+        <Text style={styles.cacheHint}>
+          Exibindo dados em cache. Atualizando...
+        </Text>
+      )}
 
       <View style={styles.summaryGrid}>
         <View style={styles.card}>
@@ -308,6 +310,12 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#111",
     marginBottom: 16,
+  },
+  cacheHint: {
+    fontSize: 12,
+    color: "#6b7280",
+    marginBottom: 12,
+    fontStyle: "italic",
   },
   summaryGrid: {
     flexDirection: "row",

@@ -1,191 +1,207 @@
-# Tech Challenge Fase 3 - App de Gerenciamento de Transações Financeiras
+# Tech Challenge Fase 3 — App de Gerenciamento Financeiro
 
-Um aplicativo móvel para gerenciamento pessoal de transações financeiras, desenvolvido com React Native e Expo. Permite aos usuários rastrear entradas (depósitos) e saídas (transferências), visualizar saldo em tempo real, fazer upload de recibos e analisar dados financeiros através de dashboards interativos.
+**Repositório:** [https://github.com/meninoheitor/TC4](https://github.com/meninoheitor/TC4)
 
----
-
-## 🚀 Tecnologias Utilizadas
-
-### Framework e Linguagem
-
-- **Expo** (v54.0.33) - Framework universal para React Native
-- **React Native** (0.81.5) com React 19.1.0
-- **TypeScript** (5.9.2) - Para tipagem estática e segurança de código
-- **Expo Router** (6.0.23) - Sistema de roteamento baseado em arquivos
-
-### Backend e Serviços
-
-- **Firebase** (12.10.0):
-  - Authentication para gerenciamento de usuários
-  - Firestore para banco de dados em tempo real
-  - Storage para upload de arquivos (recibos)
-
-### UI e Animações
-
-- React Navigation (abas inferiores e gaveta)
-- React Native SVG para renderização de gráficos
-- React Native Reanimated para animações suaves
-- @expo/vector-icons para ícones
-
-### Desenvolvimento
-
-- ESLint para linting de código
-- TypeScript para configuração de compilação
+Aplicativo mobile de finanças pessoais desenvolvido com **React Native**, **Expo** e **Firebase**, evoluído com **Clean Architecture**, **gerenciamento de estado centralizado**, **cache criptografado**, **programação reativa (RxJS)** e otimizações de performance.
 
 ---
 
-## 📱 Funcionalidades Principais
+## Funcionalidades
 
-### 🔐 Sistema de Autenticação
-
-- Cadastro de usuários com validação de nome, email e senha
-- Login com tratamento de erros (usuário não encontrado, credenciais inválidas)
-- Logout e persistência de sessão
-- Proteção de rotas baseada em estado de autenticação
-
-### 💰 Dashboard Financeiro
-
-- Cálculo de saldo em tempo real
-- Gráfico de pizza animado mostrando distribuição de depósitos/transferências
-- Análise de volume diário de transações
-- Toggle para mostrar/ocultar saldo
-
-### 📊 Gerenciamento de Transações
-
-- Criar transações (depósitos e transferências)
-- Editar transações existentes
-- Excluir transações com confirmação
-- Filtragem por categoria (todas/depósitos/transferências) e período
-- Carregamento lazy de transações (5 itens por vez)
-
-### 📎 Gerenciamento de Recibos
-
-- Upload de recibos junto com transações (imagens ou PDFs)
-- Armazenamento seguro no Firebase Storage
-- Vinculação de recibos às transações no Firestore
-- Visualização/download de links de recibos
+- Cadastro e login com Firebase Authentication (email e senha)
+- Dashboard com saldo, entradas, saídas e gráficos (pizza e fluxo diário)
+- CRUD de transações (depósito e transferência)
+- Filtros por categoria e período
+- Upload e visualização de recibos (imagem ou PDF)
+- Atualização em tempo real via Firestore
+- Ocultar/mostrar saldo no header
+- Validação de saldo em transferências (criação e edição)
+- Logout e rotas protegidas por autenticação
 
 ---
 
-## 🏗️ Estrutura do Projeto
+## Tecnologias utilizadas
+
+| Categoria | Tecnologia |
+|-----------|------------|
+| Framework | Expo 54, React Native 0.81, React 19 |
+| Linguagem | TypeScript 5.9 |
+| Navegação | Expo Router 6, React Navigation (tabs) |
+| Backend (BaaS) | Firebase Auth, Firestore, Storage |
+| Estado global | React Context API + Providers |
+| Reatividade | RxJS (streams do Firestore) |
+| Cache | AsyncStorage + criptografia (chave no Secure Store / fallback) |
+| Segurança | `expo-secure-store`, `expo-crypto`, variáveis de ambiente |
+| UI | React Native SVG, Reanimated, Expo Vector Icons |
+
+---
+
+## Requisitos da Fase 3 (proposta do challenge)
+
+| Requisito | Implementação no projeto |
+|-----------|--------------------------|
+| Arquitetura modular | Pastas `core/`, `presentation/`, `app/`, `components/` |
+| State management avançado | `AuthProvider` e `TransactionsProvider` |
+| Clean Architecture | Domain, Infrastructure, Presentation + DI |
+| Lazy loading | Dashboard com `React.lazy` + `Suspense` |
+| Cache | `TransactionCacheService` + `EncryptedCache` (TTL 5 min) |
+| Programação reativa | Firestore → `Observable` (RxJS) no `TransactionsProvider` |
+| Segurança | `.env`, Secure Store, regras Firebase, exclusão de recibos no Storage |
+
+---
+
+## Arquitetura do projeto
 
 ```
-├── app/
-├── components/
-├── hooks/
-├── services/
-├── types/
+tech-challenge-fase-03/
+├── app/                      # Telas (Expo Router) — camada de apresentação
+├── presentation/             # Providers e hooks de UI
+│   ├── providers/            # AuthProvider, TransactionsProvider
+│   └── hooks/
+├── core/
+│   ├── domain/               # Entidades, contratos, casos de uso
+│   ├── infrastructure/       # Firebase, cache, RxJS
+│   └── di/                   # Container de injeção de dependências
+├── components/               # Componentes visuais reutilizáveis
+├── services/                 # Facades de compatibilidade
 ├── utils/
-└── mocks/
+├── types/
+└── docs/ARCHITECTURE.md      # Detalhes da arquitetura
 ```
+
+### Clean Architecture (resumo)
+
+| Camada | Responsabilidade | Exemplo |
+|--------|------------------|---------|
+| **Domain** | Regras de negócio puras | `CreateTransactionUseCase`, `FinanceCalculator` |
+| **Infrastructure** | Detalhes técnicos | `FirebaseTransactionRepository`, `EncryptedCache` |
+| **Presentation** | Estado da UI e React | `AuthProvider`, `useTransactions` |
+| **App** | Rotas e composição de telas | `app/login.tsx`, `app/(tabs)/index.tsx` |
+
+> A regra de ouro: o `domain` **nunca** importa Firebase nem React.
 
 ---
 
-## 🛠️ Instalação e Execução
+## Melhorias implementadas
 
-### Pré-requisitos
+### Arquitetura e estado
 
-- Node.js (versão 18 ou superior)
+- Separação em camadas **presentation / domain / infrastructure**
+- **Use Cases** para login, CRUD de transações e upload de recibos
+- **Um único listener** Firestore via `TransactionsProvider` (evita listeners duplicados)
+- **Container DI** em `core/di/container.ts`
+
+### Performance
+
+- **Lazy loading** do dashboard (`React.lazy` + `Suspense`)
+- **Cache criptografado** de transações (TTL 5 min) para exibição mais rápida
+- Ordenação no cliente para evitar índice composto obrigatório no Firestore
+
+### Programação reativa
+
+- Firestore adaptado para `Observable` com RxJS (`shareReplay`, `catchError`)
+
+### Segurança
+
+- Credenciais Firebase via **`.env`** (`EXPO_PUBLIC_*`) ou fallback de desenvolvimento
+- Chave de criptografia do cache no **Secure Store** (com fallback no AsyncStorage na web)
+- Exclusão de recibo no **Storage** ao deletar transação
+- Validação de saldo corrigida na **edição** de transferências
+
+---
+
+## Pré-requisitos
+
+- Node.js 18+
 - npm ou yarn
-- Conta no Firebase
+- Conta no [Firebase Console](https://console.firebase.google.com/)
+- [Expo Go](https://expo.dev/go) (mobile) ou emulador Android/iOS
 
-### Passos de Instalação
+---
+
+## Passo a passo para rodar localmente
+
+### 1. Clonar e instalar
 
 ```bash
-git clone <url-do-repositorio>
-cd tech-challenge-fase3
+git clone https://github.com/meninoheitor/TC4.git
+cd TC4
 npm install
 ```
 
-Para rodar
+> Se a pasta local tiver outro nome (ex.: `tech-challenge-fase-03`), use o nome da sua pasta após o clone.
+
+### 2. Configurar variáveis de ambiente (recomendado)
 
 ```bash
-npm run start
+cp .env.example .env
+```
+
+Edite o `.env` com os dados do Firebase (Configurações do projeto → Seus apps → SDK):
+
+```env
+EXPO_PUBLIC_FIREBASE_API_KEY=...
+EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=...
+EXPO_PUBLIC_FIREBASE_PROJECT_ID=...
+EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=...
+EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=...
+EXPO_PUBLIC_FIREBASE_APP_ID=...
+EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID=...
+```
+
+> Sem `.env`, o app usa configuração padrão de desenvolvimento. Para produção, configure sempre o `.env`.
+
+### 3. Configurar Firebase
+
+1. Ative **Authentication** (Email/Senha)
+2. Crie o banco **Firestore**
+3. Ative **Storage**
+4. Aplique as regras de segurança (seção abaixo)
+
+### 4. Executar o app
+
+```bash
+npm start
+```
+
+Recomendado após mudanças de dependências:
+
+```bash
+npx expo start -c
+```
+
+Depois escaneie o QR Code (Expo Go) ou pressione:
+
+- `a` — Android
+- `i` — iOS
+- `w` — Web (alguns recursos nativos, como Secure Store, usam fallback na web)
+
+Outros scripts:
+
+```bash
+npm run android
+npm run ios
+npm run web
+npm run lint
 ```
 
 ---
 
-## 📖 Como Usar
+## Como usar o app
 
-### Primeiro Acesso
-
-1. Vá para "Cadastrar"
-2. Crie sua conta
-3. Faça login
-
-### Adicionando Transações
-
-1. Acesse "Transações"
-2. Clique em "Nova Transação"
-3. Preencha os dados
-4. (Opcional) Anexe recibo
+1. **Cadastre-se** em “Cadastrar” (nome, email, senha)
+2. **Faça login**
+3. Na aba **Início**, veja saldo, gráficos e análise financeira
+4. Na aba **Transações**, filtre, edite, exclua ou crie novas transações
+5. Ao criar, opcionalmente **anexe um recibo** (imagem ou PDF)
+6. Use o ícone de **olho** no header para ocultar/mostrar saldo
+7. Use **logout** no header para sair
 
 ---
 
-# 🔥 Integração com Firebase
+## Integração Firebase
 
-Este projeto utiliza o Firebase como backend para autenticação, persistência de dados e armazenamento de arquivos (recibos).
-A integração foi feita utilizando o SDK Web do Firebase com React Native (Expo).
-
----
-
-## 🧩 Serviços utilizados
-
-### 🔐 Authentication
-
-- Cadastro de usuários
-- Login/logout
-- Controle de sessão
-
-**Método:** Email e senha
-
----
-
-### 🗄️ Cloud Firestore
-
-- Armazena transações
-- Atualização em tempo real (`onSnapshot`)
-
----
-
-### ☁️ Cloud Storage
-
-- Armazena recibos
-- Gera URLs públicas
-
----
-
-## ⚙️ Configuração
-
-### Arquivo: `services/firebase.ts`
-
-```ts
-import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
-import { getStorage } from "firebase/storage";
-
-const firebaseConfig = {
-  apiKey: "SUA_API_KEY",
-  authDomain: "SEU_AUTH_DOMAIN",
-  projectId: "SEU_PROJECT_ID",
-  storageBucket: "SEU_STORAGE_BUCKET",
-  messagingSenderId: "SEU_SENDER_ID",
-  appId: "SEU_APP_ID",
-};
-
-const app = initializeApp(firebaseConfig);
-
-export const auth = getAuth(app);
-export const db = getFirestore(app);
-export const storage = getStorage(app);
-```
-
----
-
-## 🗂️ Estrutura de dados
-
-### Coleção: `transactions`
+### Coleção `transactions`
 
 ```json
 {
@@ -203,82 +219,15 @@ export const storage = getStorage(app);
 }
 ```
 
----
+### Regras Firestore
 
-## 🔄 Fluxo de transações
-
-### Criar
-
-- Salva no Firestore
-- Upload opcional no Storage
-
-### Listar
-
-```ts
-onSnapshot(query, callback);
-```
-
-### Editar
-
-- Atualiza dados
-- Pode substituir recibo
-
-### Remover
-
-- Remove do Firestore
-- Remove recibo (opcional)
-
----
-
-## 📤 Upload de recibos
-
-```ts
-const receiptData = await uploadReceipt({
-  transactionId,
-  file,
-  fileName,
-  contentType,
-});
-
-await attachReceiptToTransaction(transactionId, receiptData);
-```
-
-**Path:**
-
-```
-receipts/{userId}/{transactionId}/{fileName}
-```
-
----
-
-## 📥 Visualização
-
-Mobile:
-
-```ts
-Linking.openURL(url);
-```
-
-Web:
-
-```ts
-window.open(url, "_blank");
-```
-
----
-
-## 🔐 Regras de segurança
-
-### Firestore
-
-```js
+```javascript
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     match /transactions/{transactionId} {
       allow create: if request.auth != null
         && request.resource.data.userId == request.auth.uid;
-
       allow read, update, delete: if request.auth != null
         && resource.data.userId == request.auth.uid;
     }
@@ -286,9 +235,9 @@ service cloud.firestore {
 }
 ```
 
-### Storage
+### Regras Storage
 
-```js
+```javascript
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
@@ -302,39 +251,61 @@ service firebase.storage {
 
 ---
 
-## ⚠️ Pontos importantes
+## Fluxo para desenvolvedores
 
-- Autenticação obrigatória
-- Usuário acessa apenas seus dados
-- Usar `downloadURL`
-- Evitar passar URLs grandes
+### Adicionar uma nova regra de negócio
 
----
+1. Crie o caso de uso em `core/domain/use-cases/`
+2. Registre no `core/di/container.ts`
+3. Consuma no Provider ou na tela via `container.useCases...`
 
-## 💰 Custos
+### Acessar transações na UI
 
-- ~5GB storage
-- ~1GB/dia download
+```tsx
+import { useTransactions } from "@/hooks/useTransactions";
 
-Plano Blaze só cobra uso excedente.
+const { transactions, balance, loading, fromCache } = useTransactions();
+```
 
----
+### Autenticação na UI
 
-## 🐛 Problemas comuns
+```tsx
+import { useAuth } from "@/hooks/useAuth";
 
-- 403 → regras incorretas
-- Recibo não abre → URL errada
-- Erro 400 → URL quebrada
-
----
-
-## 🔧 Scripts
-
-```bash
-npm start
-npm run android
-npm run ios
-npm run web
+const { user, login, logout, loading } = useAuth();
 ```
 
 ---
+
+## Problemas comuns
+
+| Problema | Solução |
+|----------|---------|
+| Erro 403 no Firebase | Verifique regras Firestore/Storage |
+| App sem dados | Confirme login e `userId` nas transações |
+| Variáveis vazias | Copie `.env.example` → `.env` |
+| Recibo não abre | Confirme `downloadURL` no documento |
+| `SecureStore... is not a function` | Rode `npx expo install expo-secure-store expo-crypto` e `npx expo start -c`. Prefira **Expo Go** (mobile) |
+| Erro após atualizar dependências | `npx expo start -c` para limpar cache do Metro |
+
+---
+
+## Documentação adicional
+
+- [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) — visão técnica das camadas
+
+---
+
+## Scripts
+
+| Comando | Descrição |
+|---------|-----------|
+| `npm start` | Inicia o Expo |
+| `npm run android` | Abre no Android |
+| `npm run ios` | Abre no iOS |
+| `npm run web` | Abre no navegador |
+| `npm run lint` | Executa ESLint |
+
+---
+
+Desenvolvido como entrega do **Tech Challenge — Fase 3**.
